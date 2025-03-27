@@ -33,11 +33,11 @@ namespace PeepingTom {
             this.Plugin = plugin;
             this.UpdateWatch.Start();
 
-            this.Plugin.Framework.Update += this.OnFrameworkUpdate;
+            Service.Framework.Update += this.OnFrameworkUpdate;
         }
 
         public void Dispose() {
-            this.Plugin.Framework.Update -= this.OnFrameworkUpdate;
+            Service.Framework.Update -= this.OnFrameworkUpdate;
         }
 
         public void ClearPrevious() {
@@ -55,19 +55,19 @@ namespace PeepingTom {
         }
 
         private void Update() {
-            var player = this.Plugin.ClientState.LocalPlayer;
+            var player = Service.ClientState.LocalPlayer;
             if (player == null) {
                 return;
             }
 
             // get targeters and set a copy so we can release the mutex faster
-            var newCurrent = this.GetTargeting(this.Plugin.ObjectTable, player);
+            var newCurrent = this.GetTargeting(Service.ObjectTable, player);
 
             foreach (var newTargeter in newCurrent.Where(t => this.Current.All(c => c.GameObjectId != t.GameObjectId))) {
                 try {
                     this.Plugin.IpcManager.SendNewTargeter(newTargeter);
                 } catch (Exception ex) {
-                    Plugin.Log.Error(ex, "Failed to send IPC message");
+                    Service.Log.Error(ex, "Failed to send IPC message");
                 }
             }
 
@@ -75,7 +75,7 @@ namespace PeepingTom {
                 try {
                     this.Plugin.IpcManager.SendStoppedTargeting(stopped);
                 } catch (Exception ex) {
-                    Plugin.Log.Error(ex, "Failed to send IPC message");
+                    Service.Log.Error(ex, "Failed to send IPC message");
                 }
             }
 
@@ -193,14 +193,14 @@ namespace PeepingTom {
                             Thread.Sleep(500);
                         }
                     } catch (Exception ex) {
-                        Plugin.Log.Error(ex, "Exception playing sound");
+                        Service.Log.Error(ex, "Exception playing sound");
                     }
                 }
             }).Start();
         }
 
         private void SendError(string message) {
-            this.Plugin.ChatGui.Print(new XivChatEntry {
+            Service.ChatGui.Print(new XivChatEntry {
                 Message = $"[{Plugin.Name}] {message}",
                 Type = XivChatType.ErrorMessage,
             });

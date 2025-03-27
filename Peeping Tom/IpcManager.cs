@@ -16,8 +16,8 @@ namespace PeepingTom {
         internal IpcManager(Plugin plugin) {
             this.Plugin = plugin;
 
-            this.Provider = this.Plugin.Interface.GetIpcProvider<IFromMessage, object>(IpcInfo.FromRegistrationName);
-            this.Subscriber = this.Plugin.Interface.GetIpcSubscriber<IToMessage, object>(IpcInfo.ToRegistrationName);
+            this.Provider = Service.Interface.GetIpcProvider<IFromMessage, object>(IpcInfo.FromRegistrationName);
+            this.Subscriber = Service.Interface.GetIpcSubscriber<IToMessage, object>(IpcInfo.ToRegistrationName);
 
             this.Subscriber.Subscribe(this.ReceiveMessage);
         }

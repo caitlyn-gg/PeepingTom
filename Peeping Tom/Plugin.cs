@@ -13,42 +13,6 @@ namespace PeepingTom {
     public class Plugin : IDalamudPlugin {
         internal static string Name => "Peeping Tom";
 
-        [PluginService]
-        internal static IPluginLog Log { get; private set; } = null!;
-
-        [PluginService]
-        internal IDalamudPluginInterface Interface { get; init; } = null!;
-
-        [PluginService]
-        internal IChatGui ChatGui { get; init; } = null!;
-
-        [PluginService]
-        internal IClientState ClientState { get; init; } = null!;
-
-        [PluginService]
-        private ICommandManager CommandManager { get; init; } = null!;
-
-        [PluginService]
-        internal ICondition Condition { get; init; } = null!;
-
-        [PluginService]
-        internal IDataManager DataManager { get; init; } = null!;
-
-        [PluginService]
-        internal IFramework Framework { get; init; } = null!;
-
-        [PluginService]
-        internal IGameGui GameGui { get; init; } = null!;
-
-        [PluginService]
-        internal IObjectTable ObjectTable { get; init; } = null!;
-
-        [PluginService]
-        internal ITargetManager TargetManager { get; init; } = null!;
-
-        [PluginService]
-        internal IToastGui ToastGui { get; init; } = null!;
-
         internal Configuration Config { get; }
         internal PluginUi Ui { get; }
         internal TargetWatcher Watcher { get; }
@@ -56,43 +20,47 @@ namespace PeepingTom {
 
         internal bool InPvp { get; private set; }
 
-        public Plugin() {
-            this.Config = this.Interface.GetPluginConfig() as Configuration ?? new Configuration();
-            this.Config.Initialize(this.Interface);
+        public Plugin(IDalamudPluginInterface pluginInterface, IFramework framework, ICommandManager commandManager) {
+            pluginInterface.Create<Service>();
+            
+            this.Config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+            this.Config.Initialize(Service.Interface);
             this.Watcher = new TargetWatcher(this);
             this.Ui = new PluginUi(this);
             this.IpcManager = new IpcManager(this);
 
-            OnLanguageChange(this.Interface.UiLanguage);
-            this.Interface.LanguageChanged += OnLanguageChange;
+            OnLanguageChange(Service.Interface.UiLanguage);
+            Service.Interface.LanguageChanged += OnLanguageChange;
 
-            this.CommandManager.AddHandler("/ppeepingtom", new CommandInfo(this.OnCommand) {
+            Service.CommandManager.AddHandler("/ppeepingtom", new CommandInfo(this.OnCommand) {
                 HelpMessage = "Use with no arguments to show the list. Use with \"c\" or \"config\" to show the config",
             });
-            this.CommandManager.AddHandler("/ptom", new CommandInfo(this.OnCommand) {
+            Service.CommandManager.AddHandler("/ptom", new CommandInfo(this.OnCommand) {
                 HelpMessage = "Alias for /ppeepingtom",
             });
-            this.CommandManager.AddHandler("/ppeep", new CommandInfo(this.OnCommand) {
+            Service.CommandManager.AddHandler("/ppeep", new CommandInfo(this.OnCommand) {
                 HelpMessage = "Alias for /ppeepingtom",
             });
 
-            this.ClientState.Login += this.OnLogin;
-            this.ClientState.Logout += this.OnLogout;
-            this.ClientState.TerritoryChanged += this.OnTerritoryChange;
-            this.Interface.UiBuilder.Draw += this.DrawUi;
-            this.Interface.UiBuilder.OpenConfigUi += this.ConfigUi;
+            Service.ClientState.Login += this.OnLogin;
+            Service.ClientState.Logout += this.OnLogout;
+            Service.ClientState.TerritoryChanged += this.OnTerritoryChange;
+            Service.Interface.UiBuilder.Draw += this.DrawUi;
+            Service.Interface.UiBuilder.OpenConfigUi += this.ConfigUi;
+            Service.Interface.UiBuilder.OpenMainUi += this.Ui.Open;
         }
 
         public void Dispose() {
-            this.Interface.UiBuilder.OpenConfigUi -= this.ConfigUi;
-            this.Interface.UiBuilder.Draw -= this.DrawUi;
-            this.ClientState.TerritoryChanged -= this.OnTerritoryChange;
-            this.ClientState.Logout -= this.OnLogout;
-            this.ClientState.Login -= this.OnLogin;
-            this.CommandManager.RemoveHandler("/ppeep");
-            this.CommandManager.RemoveHandler("/ptom");
-            this.CommandManager.RemoveHandler("/ppeepingtom");
-            this.Interface.LanguageChanged -= OnLanguageChange;
+            Service.Interface.UiBuilder.OpenConfigUi -= this.ConfigUi;
+            Service.Interface.UiBuilder.OpenMainUi -= this.Ui.Open;
+            Service.Interface.UiBuilder.Draw -= this.DrawUi;
+            Service.ClientState.TerritoryChanged -= this.OnTerritoryChange;
+            Service.ClientState.Logout -= this.OnLogout;
+            Service.ClientState.Login -= this.OnLogin;
+            Service.CommandManager.RemoveHandler("/ppeep");
+            Service.CommandManager.RemoveHandler("/ptom");
+            Service.CommandManager.RemoveHandler("/ppeepingtom");
+            Service.Interface.LanguageChanged -= OnLanguageChange;
             this.IpcManager.Dispose();
             this.Ui.Dispose();
             this.Watcher.Dispose();
@@ -104,10 +72,10 @@ namespace PeepingTom {
 
         private void OnTerritoryChange(ushort e) {
             try {
-                var territory = this.DataManager.GetExcelSheet<TerritoryType>().GetRow(e);
+                var territory = Service.DataManager.GetExcelSheet<TerritoryType>().GetRow(e);
                 this.InPvp = territory.IsPvpZone == true;
             } catch (KeyNotFoundException) {
-                Log.Warning("Could not get territory for current zone");
+                Service.Log.Warning("Could not get territory for current zone");
             }
         }
 

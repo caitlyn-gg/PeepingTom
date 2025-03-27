@@ -61,13 +61,13 @@ namespace PeepingTom {
                 this.ShowSettings();
             }
 
-            var inCombat = this.Plugin.Condition[ConditionFlag.InCombat];
-            var inInstance = this.Plugin.Condition[ConditionFlag.BoundByDuty]
-                             || this.Plugin.Condition[ConditionFlag.BoundByDuty56]
-                             || this.Plugin.Condition[ConditionFlag.BoundByDuty95];
-            var inCutscene = this.Plugin.Condition[ConditionFlag.WatchingCutscene]
-                             || this.Plugin.Condition[ConditionFlag.WatchingCutscene78]
-                             || this.Plugin.Condition[ConditionFlag.OccupiedInCutSceneEvent];
+            var inCombat = Service.Condition[ConditionFlag.InCombat];
+            var inInstance = Service.Condition[ConditionFlag.BoundByDuty]
+                             || Service.Condition[ConditionFlag.BoundByDuty56]
+                             || Service.Condition[ConditionFlag.BoundByDuty95];
+            var inCutscene = Service.Condition[ConditionFlag.WatchingCutscene]
+                             || Service.Condition[ConditionFlag.WatchingCutscene78]
+                             || Service.Condition[ConditionFlag.OccupiedInCutSceneEvent];
 
             // FIXME: this could just be a boolean expression
             var shouldBeShown = this.WantsOpen;
@@ -110,13 +110,13 @@ namespace PeepingTom {
                 goto EndDummy;
             }
 
-            var player = this.Plugin.ClientState.LocalPlayer;
+            var player = Service.ClientState.LocalPlayer;
             if (player == null) {
                 goto EndDummy;
             }
 
             var targeting = this.Plugin.Watcher.CurrentTargeters
-                .Select(targeter => this.Plugin.ObjectTable.FirstOrDefault(obj => obj.GameObjectId == targeter.GameObjectId))
+                .Select(targeter => Service.ObjectTable.FirstOrDefault(obj => obj.GameObjectId == targeter.GameObjectId))
                 .Where(targeter => targeter is IPlayerCharacter)
                 .Cast<IPlayerCharacter>()
                 .ToArray();
@@ -412,7 +412,7 @@ namespace PeepingTom {
             Dictionary<ulong, IGameObject>? objects = null;
             if (targeting.Count + (previousTargeters?.Count ?? 0) > 1) {
                 var dict = new Dictionary<ulong, IGameObject>();
-                foreach (var obj in this.Plugin.ObjectTable) {
+                foreach (var obj in Service.ObjectTable) {
                     if (dict.ContainsKey(obj.GameObjectId) || obj.ObjectKind != ObjectKind.Player) {
                         continue;
                     }
@@ -484,11 +484,11 @@ namespace PeepingTom {
                 var previousFocus = this.PreviousFocus;
                 if (this.Plugin.Config.FocusTargetOnHover && !anyHovered && previousFocus != null) {
                     if (previousFocus == uint.MaxValue) {
-                        this.Plugin.TargetManager.FocusTarget = null;
+                        Service.TargetManager.FocusTarget = null;
                     } else {
-                        var actor = this.Plugin.ObjectTable.FirstOrDefault(a => a.GameObjectId == previousFocus);
+                        var actor = Service.ObjectTable.FirstOrDefault(a => a.GameObjectId == previousFocus);
                         // either target the actor if still present or target nothing
-                        this.Plugin.TargetManager.FocusTarget = actor;
+                        Service.TargetManager.FocusTarget = actor;
                     }
 
                     this.PreviousFocus = null;
@@ -540,7 +540,7 @@ namespace PeepingTom {
             var left = hover && ImGui.IsMouseClicked(ImGuiMouseButton.Left);
             var right = hover && ImGui.IsMouseClicked(ImGuiMouseButton.Right);
 
-            obj ??= this.Plugin.ObjectTable.FirstOrDefault(a => a.GameObjectId == targeter.GameObjectId);
+            obj ??= Service.ObjectTable.FirstOrDefault(a => a.GameObjectId == targeter.GameObjectId);
 
             // don't count as hovered if the actor isn't here (clears focus target when hovering missing actors)
             if (obj != null) {
@@ -548,8 +548,8 @@ namespace PeepingTom {
             }
 
             if (this.Plugin.Config.FocusTargetOnHover && hover && obj != null) {
-                this.PreviousFocus ??= this.Plugin.TargetManager.FocusTarget?.GameObjectId ?? uint.MaxValue;
-                this.Plugin.TargetManager.FocusTarget = obj;
+                this.PreviousFocus ??= Service.TargetManager.FocusTarget?.GameObjectId ?? uint.MaxValue;
+                Service.TargetManager.FocusTarget = obj;
             }
 
             if (left) {
@@ -560,17 +560,17 @@ namespace PeepingTom {
                         }
                     } else {
                         var error = string.Format(Language.ExamineErrorToast, targeter.Name);
-                        this.Plugin.ToastGui.ShowError(error);
+                        Service.ToastGui.ShowError(error);
                     }
                 } else {
                     var payload = new PlayerPayload(targeter.Name.TextValue, targeter.HomeWorldId);
                     Payload[] payloads = [payload];
-                    this.Plugin.ChatGui.Print(new XivChatEntry {
+                    Service.ChatGui.Print(new XivChatEntry {
                         Message = new SeString(payloads),
                     });
                 }
             } else if (right && obj != null) {
-                this.Plugin.TargetManager.Target = obj;
+                Service.TargetManager.Target = obj;
             }
         }
 
@@ -579,7 +579,7 @@ namespace PeepingTom {
                 return;
             }
 
-            if (!this.Plugin.GameGui.WorldToScreen(player.Position, out var screenPos)) {
+            if (!Service.GameGui.WorldToScreen(player.Position, out var screenPos)) {
                 return;
             }
 
@@ -596,7 +596,7 @@ namespace PeepingTom {
         }
 
         private IPlayerCharacter? GetCurrentTarget() {
-            var player = this.Plugin.ClientState.LocalPlayer;
+            var player = Service.ClientState.LocalPlayer;
             if (player == null) {
                 return null;
             }
@@ -606,10 +606,14 @@ namespace PeepingTom {
                 return null;
             }
 
-            return this.Plugin.ObjectTable
+            return Service.ObjectTable
                 .Where(actor => actor.GameObjectId == targetId && actor is IPlayerCharacter)
                 .Select(actor => actor as IPlayerCharacter)
                 .FirstOrDefault();
+        }
+
+        public void Open() {
+            WantsOpen = true;
         }
     }
 }
