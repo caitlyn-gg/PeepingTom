@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Text;
 using Dalamud.Plugin.Services;
 using PeepingTom.Ipc;
@@ -125,16 +126,14 @@ namespace PeepingTom {
                 .ToArray();
         }
 
-        private static byte GetStatus(IGameObject actor) {
-            var statusPtr = actor.Address + 0x1980; // updated 5.4
-            return Marshal.ReadByte(statusPtr);
-        }
+        private static bool InCombat(IGameObject actor) =>
+            (actor as IPlayerCharacter)!.StatusFlags.HasFlag(StatusFlags.InCombat);
 
-        private static bool InCombat(IGameObject actor) => (GetStatus(actor) & 2) > 0;
+        private static bool InParty(IGameObject actor) =>
+            (actor as IPlayerCharacter)!.StatusFlags.HasFlag(StatusFlags.PartyMember);
 
-        private static bool InParty(IGameObject actor) => (GetStatus(actor) & 16) > 0;
-
-        private static bool InAlliance(IGameObject actor) => (GetStatus(actor) & 32) > 0;
+        private static bool InAlliance(IGameObject actor) =>
+            (actor as IPlayerCharacter)!.StatusFlags.HasFlag(StatusFlags.AllianceMember);
 
         private bool CanPlaySound() {
             if (!this.Plugin.Config.PlaySoundOnTarget) {
